@@ -1,0 +1,159 @@
+// DATA PREPROCESSING
+BEGIN
+	// Read Raw UWB Dataset
+	READ datasets
+    
+    // Filter for LOS Signals only
+    REMOVE NLOS entries
+    
+    // Feature Selection
+    REMOVE constant features = ["CH", "BITRATE", "PRFR"]
+    REMOVE correlated features:
+    	DROP STDEV_NOISE (correlated with MAX_NOISE)
+        DROP FP_AMP3 (correlated with FP_AMP2)
+        
+    // CIR Processing
+    NORMALIZE CIR0-CIR1015 using RXPACC
+    RETAIN CIR taps with |r| > 0.2 (correlation with RANGE)
+    APPLY PCA:
+    	KEEP top 6 compontents (CIR_PC1 to CIR_PC6)
+       
+    // Merge & Finalise
+    MERGE PCA Components with Core Features
+    VALIDATE features:
+    	CALCULATE Random Forest importance
+        CALCULATE Paired t-tests on feature removal
+    FINALIZE dataset with 14 features
+END
+
+// DATA MINING
+BEGIN
+	// Read Finalized dataset (14 features)
+    READ dataset
+    
+    SPLIT dataset into training and testing (70:30)
+    TRAIN linear regression model on training set
+    PREDICT "RANGE" using model on the testing set
+
+END
+
+// DATA POSTPROCESSING
+BEGIN
+	// Evaluate predictions
+    CALCULATE Mean Absolute Error ON predictions
+    CALCULATE Mean Squared Error ON predictions
+    CALCULATE Root Mean Squared Error ON predictions
+    CALCULATE R2 Score ON predictions
+    
+    // Visulize results
+    PLOT Actual vs Predicted RANGE (Scatter Plot)
+    PLOT Feature importance (based on model coefficients)
+    PLOT Permutation importance (Bar Plot)
+END
+
+// INDIVIDUAL STAGE PLANTUML
+@startuml
+
+start
+
+:Read Raw UWB Dataset;
+:Remove NLOS entries;
+
+group Feature Selection
+    :Remove constant features (CH, BITRATE, PRFR);
+    :Drop STDEV_NOISE (correlated with MAX_NOISE);
+    :Drop FP_AMP3 (correlated with FP_AMP2);
+end group
+
+group CIR Processing
+    :Normalize CIR0-CIR1015 using RXPACC;
+    :Retain CIR taps with |r| > 0.2 (correlation with RANGE);
+    :Apply PCA;
+    :Keep top 6 components (CIR_PC1 to CIR_PC6);
+end group
+
+group Merge & Finalize
+    :Merge PCA Components with Core Features;
+    :Validate features;
+    :Calculate Random Forest importance;
+    :Calculate Paired t-tests on feature removal;
+    :Finalize dataset with 14 features;
+end group
+
+stop
+
+start
+
+:Read Finalized dataset (14 features);
+:Split dataset into training and testing (70:30);
+:Train linear regression model on training set;
+:Predict "RANGE" using model on the testing set;
+
+stop
+
+start
+
+group Evaluate Predictions
+    :Calculate Mean Absolute Error;
+    :Calculate Mean Squared Error;
+    :Calculate Root Mean Squared Error;
+    :Calculate R2 Score;
+end group
+
+group Visualize Results
+    :Plot Actual vs Predicted RANGE (Scatter Plot);
+    :Plot Feature importance (based on model coefficients);
+    :Plot Permutation importance (Bar Plot);
+end group
+
+stop
+
+@enduml
+
+// WHOLE OVERVIEW PLANTUML
+@startuml
+
+start
+
+group Data Preprocessing
+    :Read Raw UWB Dataset;
+    :Remove NLOS entries;
+
+    :Remove constant features (CH, BITRATE, PRFR);
+    :Drop STDEV_NOISE (correlated with MAX_NOISE);
+    :Drop FP_AMP3 (correlated with FP_AMP2);
+
+    :Normalize CIR0-CIR1015 using RXPACC;
+    :Retain CIR taps with |r| > 0.2 (correlation with RANGE);
+    :Apply PCA;
+    :Keep top 6 components (CIR_PC1 to CIR_PC6);
+
+    :Merge PCA Components with Core Features;
+    :Validate features;
+    :Calculate Random Forest importance;
+    :Calculate Paired t-tests on feature removal;
+    :Finalize dataset with 14 features;
+end group
+
+
+group Data Mining
+    :Read Finalized dataset (14 features);
+    :Split dataset into training and testing (70:30);
+    :Train linear regression model on training set;
+    :Predict "RANGE" using model on the testing set;
+end group
+
+group Data Postprocessing
+    :Calculate Mean Absolute Error;
+    :Calculate Mean Squared Error;
+    :Calculate Root Mean Squared Error;
+    :Calculate R2 Score;
+
+    :Plot Actual vs Predicted RANGE (Scatter Plot);
+    :Plot Feature importance (based on model coefficients);
+    :Plot Permutation importance (Bar Plot);
+end group
+
+stop
+
+@enduml
